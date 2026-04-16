@@ -19,6 +19,10 @@ This project implements assignment topic 7: movie data analysis.
 - Modern dashboard UI with Plotly charts
 - Regression models for revenue or rating prediction
 
+## Detailed guide
+
+See `HUONG_DAN_SU_DUNG.md` for the full feature list, usage guide, project structure, and demo notes.
+
 ## Run the app
 
 ```powershell
