@@ -20,6 +20,7 @@ NUMERIC_COLUMNS = [
     "vote_count",
     "metascore",
 ]
+DERIVED_NUMERIC_COLUMNS = ["profit", "roi"]
 CATEGORICAL_COLUMNS = ["title", "genres", "studio", "language"]
 REQUIRED_COLUMNS = CATEGORICAL_COLUMNS + NUMERIC_COLUMNS
 DEFAULT_NUMERIC_VALUES = {
@@ -251,7 +252,7 @@ def ensure_sample_dataset(base_dir: Path) -> Path:
 def load_sample_dataset(base_dir: Path) -> tuple[pd.DataFrame, str, Path]:
     dataset_path = ensure_sample_dataset(base_dir)
     dataset = pd.read_csv(dataset_path)
-    return dataset, "Built-in sample dataset", dataset_path
+    return dataset, "Internal generated movie dataset", dataset_path
 
 
 def load_uploaded_dataset(file_bytes: bytes, filename: str) -> tuple[pd.DataFrame, str]:
@@ -276,11 +277,14 @@ def clean_movie_data(
     working = working.copy()
     rows_before = len(working)
 
+    before_missing_frame = working[REQUIRED_COLUMNS].copy()
+    before_missing_frame["genres"] = before_missing_frame["genres"].replace(r"^\s*$", pd.NA, regex=True)
+
     for column in NUMERIC_COLUMNS:
         working[column] = pd.to_numeric(working[column], errors="coerce")
 
     working["genres"] = working["genres"].apply(_normalize_genre_value)
-    before_missing = working[REQUIRED_COLUMNS].isna().sum().to_dict()
+    before_missing = before_missing_frame.isna().sum().to_dict()
 
     duplicate_columns = [column for column in ["title", "release_year", "studio"] if column in working.columns]
     duplicates_removed = 0
@@ -324,6 +328,8 @@ def clean_movie_data(
     working["rating"] = working["rating"].clip(lower=0, upper=10)
     working["budget"] = working["budget"].clip(lower=1_000_000)
     working["revenue"] = working["revenue"].clip(lower=1_000_000)
+    working["profit"] = working["revenue"] - working["budget"]
+    working["roi"] = np.where(working["budget"] > 0, working["revenue"] / working["budget"], np.nan)
 
     after_missing = working[REQUIRED_COLUMNS + ["primary_genre"]].isna().sum().to_dict()
     report = {
@@ -348,3 +354,79 @@ def explode_genres(frame: pd.DataFrame) -> pd.DataFrame:
     expanded["genre_item"] = expanded["genre_item"].astype("string").str.strip()
     expanded["genre_item"] = expanded["genre_item"].replace({"": "Unknown", "<NA>": "Unknown"})
     return expanded
+
+
+def build_data_quality_report(raw_frame: pd.DataFrame, cleaned_frame: pd.DataFrame) -> dict[str, Any]:
+    cleaned_numeric_columns = [column for column in NUMERIC_COLUMNS + DERIVED_NUMERIC_COLUMNS if column in cleaned_frame.columns]
+    raw_numeric_columns = [column for column in NUMERIC_COLUMNS if column in raw_frame.columns]
+
+    completeness_rows: list[dict[str, Any]] = []
+    for column in REQUIRED_COLUMNS:
+        if column in raw_frame.columns:
+            missing_count = int(raw_frame[column].isna().sum())
+            missing_pct = float(raw_frame[column].isna().mean() * 100)
+        else:
+            missing_count = len(raw_frame)
+            missing_pct = 100.0
+        completeness_rows.append(
+            {
+                "column": column,
+                "missing_count": missing_count,
+                "missing_pct": missing_pct,
+            }
+        )
+
+    outlier_rows: list[dict[str, Any]] = []
+    for column in cleaned_numeric_columns:
+        series = pd.to_numeric(cleaned_frame[column], errors="coerce").dropna()
+        if len(series) < 4:
+            outlier_count = 0
+        else:
+            q1 = float(series.quantile(0.25))
+            q3 = float(series.quantile(0.75))
+            iqr = q3 - q1
+            if iqr == 0:
+                outlier_count = 0
+            else:
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                outlier_count = int(((series < lower_bound) | (series > upper_bound)).sum())
+
+        outlier_rows.append(
+            {
+                "column": column,
+                "outlier_count": outlier_count,
+                "outlier_pct": float((outlier_count / max(len(cleaned_frame), 1)) * 100),
+            }
+        )
+
+    invalid_rows: list[dict[str, Any]] = []
+    invalid_rules = {
+        "rating_out_of_range": ("rating", lambda series: (series < 0) | (series > 10)),
+        "negative_revenue": ("revenue", lambda series: series < 0),
+        "negative_budget": ("budget", lambda series: series < 0),
+        "runtime_too_short": ("runtime", lambda series: series < 40),
+        "release_year_out_of_range": ("release_year", lambda series: (series < 1900) | (series > 2035)),
+        "negative_vote_count": ("vote_count", lambda series: series < 0),
+        "metascore_out_of_range": ("metascore", lambda series: (series < 0) | (series > 100)),
+    }
+    for rule_name, (column, validator) in invalid_rules.items():
+        if column not in raw_frame.columns:
+            continue
+        series = pd.to_numeric(raw_frame[column], errors="coerce")
+        invalid_count = int(validator(series.fillna(np.nan)).sum())
+        invalid_rows.append({"rule": rule_name, "column": column, "invalid_count": invalid_count})
+
+    duplicate_count = int(raw_frame.duplicated().sum())
+    completeness_frame = pd.DataFrame(completeness_rows).sort_values(by="missing_pct", ascending=False).reset_index(drop=True)
+    outlier_frame = pd.DataFrame(outlier_rows).sort_values(by="outlier_count", ascending=False).reset_index(drop=True)
+    invalid_frame = pd.DataFrame(invalid_rows).sort_values(by="invalid_count", ascending=False).reset_index(drop=True)
+
+    return {
+        "duplicate_rows_raw": duplicate_count,
+        "completeness": completeness_frame,
+        "outliers": outlier_frame,
+        "invalids": invalid_frame,
+        "raw_row_count": len(raw_frame),
+        "cleaned_row_count": len(cleaned_frame),
+    }
