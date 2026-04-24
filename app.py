@@ -10,6 +10,12 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
+<<<<<<< HEAD
+=======
+## Add the parent directory to sys.path to allow imports from movie_analysis
+
+
+>>>>>>> a5681f1 (update code)
 from movie_analysis.data import (
     build_data_quality_report,
     clean_movie_data,
