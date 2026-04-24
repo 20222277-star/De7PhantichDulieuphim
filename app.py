@@ -10,12 +10,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
-<<<<<<< HEAD
-=======
 ## Add the parent directory to sys.path to allow imports from movie_analysis
 
-
->>>>>>> a5681f1 (update code)
 from movie_analysis.data import (
     build_data_quality_report,
     clean_movie_data,
@@ -25,7 +21,7 @@ from movie_analysis.data import (
 )
 from movie_analysis.modeling import predict_single, train_regression_models
 from movie_analysis.styles import APP_CSS, hero_card, insight_card, metric_card, section_header
-
+## Note: In a real project, the above imports would be structured as from movie_analysis.data import ..., but for this self-contained example, we assume the data and modeling functions are defined in the same file or properly imported.
 BASE_DIR = Path(__file__).resolve().parent
 PALETTE = ["#ff8a3d", "#12c6c2", "#ffd166", "#7bdff2", "#ff5d73", "#8ecae6", "#90be6d", "#c77dff"]
 LANGUAGE_OPTIONS = {"Tiếng Việt": "vi", "English": "en"}
