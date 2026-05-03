@@ -10,18 +10,10 @@ import plotly.graph_objects as go
 import streamlit as st
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
-## Add the parent directory to sys.path to allow imports from movie_analysis
-
-from movie_analysis.data import (
-    build_data_quality_report,
-    clean_movie_data,
-    explode_genres,
-    load_sample_dataset,
-    load_uploaded_dataset,
-)
+from movie_analysis.data import explode_genres
 from movie_analysis.modeling import predict_single, train_regression_models
 from movie_analysis.styles import APP_CSS, hero_card, insight_card, metric_card, section_header
-## Note: In a real project, the above imports would be structured as from movie_analysis.data import ..., but for this self-contained example, we assume the data and modeling functions are defined in the same file or properly imported.
+from movie_analysis.pipeline import prepare_dataset_bundle
 BASE_DIR = Path(__file__).resolve().parent
 PALETTE = ["#ff8a3d", "#12c6c2", "#ffd166", "#7bdff2", "#ff5d73", "#8ecae6", "#90be6d", "#c77dff"]
 LANGUAGE_OPTIONS = {"Tiếng Việt": "vi", "English": "en"}
@@ -1009,23 +1001,24 @@ def main() -> None:
     st.sidebar.caption(t(lang, "leave_upload_empty"))
 
     try:
-        if uploaded_file is None:
-            raw_df, source_label, dataset_path = load_sample_dataset(BASE_DIR)
-            sample_path_label = str(dataset_path.relative_to(BASE_DIR))
-        else:
-            raw_df, source_label = load_uploaded_dataset(uploaded_file.getvalue(), uploaded_file.name)
-            sample_path_label = t(lang, "uploaded_from_local")
+        bundle = prepare_dataset_bundle(
+            base_dir=BASE_DIR,
+            uploaded_file_bytes=None if uploaded_file is None else uploaded_file.getvalue(),
+            uploaded_filename=None if uploaded_file is None else uploaded_file.name,
+            numeric_strategy=numeric_strategy,
+            categorical_strategy=categorical_strategy,
+            drop_duplicates=drop_duplicates,
+        )
     except Exception as exc:
         st.error(t(lang, "unable_read_dataset", exc=exc))
         return
 
-    cleaned_df, cleaning_report = clean_movie_data(
-        raw_df,
-        numeric_strategy=numeric_strategy,
-        categorical_strategy=categorical_strategy,
-        drop_duplicates=drop_duplicates,
-    )
-    quality_report = build_data_quality_report(raw_df, cleaned_df)
+    raw_df = bundle.raw_df
+    cleaned_df = bundle.cleaned_df
+    source_label = bundle.source_label
+    sample_path_label = bundle.sample_path_label if uploaded_file is None else t(lang, "uploaded_from_local")
+    cleaning_report = bundle.cleaning_report
+    quality_report = bundle.quality_report
 
     available_genres = sorted(explode_genres(cleaned_df)["genre_item"].dropna().unique().tolist())
     year_min = int(cleaned_df["release_year"].min())

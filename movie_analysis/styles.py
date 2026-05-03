@@ -226,19 +226,28 @@ div[data-testid="stAlert"] {
 """
 
 
-def hero_card(source_label: str, row_count: int, genre_count: int) -> str:
+def hero_card(
+    eyebrow: str,
+    title: str,
+    description: str,
+    source_label_title: str,
+    rows_label: str,
+    genres_label: str,
+    source_label: str,
+    row_count: int,
+    genre_count: int,
+) -> str:
     return f"""
     <div class="hero-card">
-        <div class="eyebrow">Movie Analysis Studio</div>
-        <h1 class="hero-title">Movie analysis dashboard for cleaning, insights, and prediction</h1>
+        <div class="eyebrow">{eyebrow}</div>
+        <h1 class="hero-title">{title}</h1>
         <p class="hero-description">
-            This app covers all required tasks in the assignment: missing-data cleaning, genre popularity,
-            rating versus revenue analysis, top movie visualization, and prediction for rating or revenue.
+            {description}
         </p>
         <div class="hero-meta">
-            <div class="hero-chip"><strong>Source:</strong> {source_label}</div>
-            <div class="hero-chip"><strong>Rows:</strong> {row_count}</div>
-            <div class="hero-chip"><strong>Genres:</strong> {genre_count}</div>
+            <div class="hero-chip"><strong>{source_label_title}:</strong> {source_label}</div>
+            <div class="hero-chip"><strong>{rows_label}:</strong> {row_count}</div>
+            <div class="hero-chip"><strong>{genres_label}:</strong> {genre_count}</div>
         </div>
     </div>
     """

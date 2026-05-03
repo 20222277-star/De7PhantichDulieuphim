@@ -15,6 +15,7 @@ Project được xây dựng để đáp ứng đầy đủ các yêu cầu củ
 3. Phân tích mối quan hệ giữa rating và doanh thu.
 4. Trực quan hóa top phim.
 5. Dự đoán rating hoặc doanh thu.
+6. Mở rộng thành dashboard phân tích đầy đủ hơn với kiểm tra chất lượng dữ liệu, xu hướng theo thời gian, KPI profit/ROI và phân tích kịch bản.
 
 ## 3. Công nghệ sử dụng
 
@@ -129,7 +130,9 @@ Mục đích:
 - số lượng phim đang được xem,
 - rating trung bình,
 - tổng doanh thu,
-- tương quan giữa rating và doanh thu.
+- lợi nhuận trung bình,
+- lượt xem trung bình dựa trên `vote_count`,
+- ROI trung bình của tập dữ liệu đang lọc.
 
 Mục đích:
 
@@ -193,7 +196,9 @@ Người dùng có thể xem top phim theo:
 
 - doanh thu,
 - rating,
-- ngân sách.
+- ngân sách,
+- lợi nhuận,
+- ROI.
 
 Số lượng phim hiển thị có thể điều chỉnh, ví dụ:
 
@@ -210,7 +215,8 @@ Mục đích:
 Ứng dụng hỗ trợ dự đoán:
 
 - doanh thu,
-- hoặc rating.
+- rating,
+- hoặc lượt xem / `vote_count`.
 
 Các mô hình được huấn luyện và so sánh:
 
@@ -223,7 +229,8 @@ Các mô hình được huấn luyện và so sánh:
 - huấn luyện mô hình,
 - đo hiệu năng,
 - chọn ra mô hình tốt nhất,
-- hiển thị bảng kết quả.
+- hiển thị bảng kết quả,
+- đánh giá thêm bằng cross-validation để giảm rủi ro phụ thuộc vào một lần chia train/test.
 
 ### 6.13. Hiển thị chỉ số đánh giá mô hình
 
@@ -232,6 +239,8 @@ Phần dự đoán có hiển thị các chỉ số:
 - `R2`
 - `RMSE`
 - `MAE`
+- `CV_R2`
+- `CV_RMSE`
 
 Mục đích:
 
@@ -269,9 +278,134 @@ Người dùng có thể nhập trực tiếp thông tin một bộ phim:
 Sau đó bấm nút dự đoán để nhận:
 
 - doanh thu dự đoán,
-- hoặc rating dự đoán.
+- rating dự đoán,
+- hoặc lượt xem dự đoán.
 
-### 6.16. Xem dữ liệu gốc và dữ liệu đã làm sạch
+Ngoài ra ứng dụng còn hiển thị:
+
+- xu hướng tăng/giảm độ phổ biến,
+- mức độ phổ biến thấp/trung bình/cao,
+- bảng so sánh với phim có lượt xem cao nhất và thấp nhất hiện tại.
+
+### 6.16. Báo cáo chất lượng dữ liệu
+
+Ứng dụng có tab riêng để kiểm tra chất lượng dữ liệu trước khi phân tích sâu hoặc huấn luyện mô hình.
+
+Các nội dung chính:
+
+- tỷ lệ thiếu dữ liệu theo từng cột,
+- số dòng trùng lặp ở dữ liệu gốc,
+- số lượng outlier theo từng biến số,
+- số lượng giá trị không hợp lệ như rating ngoài khoảng 0-10, metascore ngoài khoảng 0-100, runtime quá ngắn, v.v.
+
+Mục đích:
+
+- giúp người dùng đánh giá dataset có đủ tin cậy hay không,
+- tránh rút ra insight sai từ dữ liệu chất lượng kém.
+
+### 6.17. Phân tích xu hướng theo thời gian
+
+Ứng dụng hỗ trợ xem xu hướng theo năm phát hành cho các chỉ số:
+
+- số lượng phim,
+- rating trung bình,
+- tổng doanh thu,
+- doanh thu trung bình,
+- lợi nhuận trung bình,
+- ROI trung bình.
+
+Mục đích:
+
+- phát hiện giai đoạn tăng trưởng hay suy giảm,
+- quan sát sự thay đổi hiệu quả kinh doanh theo thời gian.
+
+### 6.18. Phân tích phân phối và tương quan
+
+Ứng dụng có phần riêng để xem:
+
+- histogram,
+- boxplot,
+- ma trận tương quan giữa các biến số.
+
+Các biến số chính được hỗ trợ:
+
+- rating
+- revenue
+- budget
+- runtime
+- vote_count
+- profit
+- roi
+
+Mục đích:
+
+- giúp hiểu phân phối dữ liệu,
+- phát hiện lệch phân phối, outlier,
+- xem tương quan tổng thể thay vì chỉ một cặp biến.
+
+### 6.19. KPI kinh doanh mở rộng: Profit và ROI
+
+Ứng dụng tự tạo thêm:
+
+- `profit = revenue - budget`
+- `roi = revenue / budget`
+
+Các chỉ số này được dùng trong:
+
+- overview,
+- time trends,
+- top movies,
+- correlation matrix,
+- phân tích hiệu quả đầu tư phim.
+
+### 6.20. Phân tích kịch bản dự đoán
+
+Sau khi người dùng nhập form dự đoán, ứng dụng tự động tạo thêm phần scenario analysis.
+
+Chức năng này sẽ:
+
+- giữ nguyên các thuộc tính khác của bộ phim,
+- thay đổi ngân sách theo nhiều mức,
+- vẽ biểu đồ cho thấy kết quả dự đoán thay đổi ra sao.
+
+Mục đích:
+
+- hỗ trợ phân tích quyết định,
+- minh họa độ nhạy của mô hình với biến `budget`.
+
+### 6.21. So sánh 2 nhóm dữ liệu
+
+Ứng dụng hỗ trợ so sánh 2 thể loại hoặc 2 hãng phim theo nhiều chỉ số:
+
+- số lượng phim,
+- rating trung bình,
+- doanh thu trung bình,
+- lợi nhuận trung bình,
+- ROI trung bình,
+- lượt xem trung bình.
+
+Mục đích:
+
+- hỗ trợ phân tích đối chiếu,
+- giúp người dùng trả lời câu hỏi nhóm nào hiệu quả hơn.
+
+### 6.22. Phân tích chi tiết từng phim
+
+Người dùng có thể chọn một phim bất kỳ để xem:
+
+- percentile rating,
+- percentile revenue,
+- percentile profit,
+- chênh lệch so với trung bình của genre,
+- chênh lệch so với trung bình của studio,
+- các phim tương đồng để đối chiếu.
+
+Mục đích:
+
+- chuyển từ dashboard tổng quan sang phân tích từng đối tượng cụ thể,
+- làm cho ứng dụng giống một app phân tích hoàn chỉnh hơn.
+
+### 6.23. Xem dữ liệu gốc và dữ liệu đã làm sạch
 
 Ứng dụng có tab riêng để quan sát:
 
@@ -282,7 +416,7 @@ Mục đích:
 
 - giúp so sánh dữ liệu trước và sau xử lý.
 
-### 6.17. Tải dữ liệu đã xử lý
+### 6.24. Tải dữ liệu đã xử lý
 
 Người dùng có thể tải:
 
@@ -358,7 +492,57 @@ Tab này trình bày:
 
 - dùng để trả lời câu hỏi thể loại nào phổ biến nhất.
 
-## 7.5. Tab Rating vs Revenue
+## 7.5. Tab Compare
+
+Tab này cho phép:
+
+- chọn kiểu so sánh theo `Genre` hoặc `Studio`,
+- chọn đúng 2 nhóm để so sánh,
+- chọn chỉ số cần đối chiếu,
+- xem biểu đồ và bảng tổng hợp song song.
+
+### Khi nào dùng
+
+- dùng khi cần so sánh trực tiếp 2 thể loại hoặc 2 hãng phim.
+
+## 7.6. Tab Data Quality
+
+Tab này trình bày:
+
+- tỷ lệ thiếu dữ liệu theo từng cột,
+- số dòng trùng lặp ở dữ liệu gốc,
+- số outlier theo từng biến số,
+- bảng giá trị không hợp lệ.
+
+### Khi nào dùng
+
+- dùng ngay sau bước cleaning để đánh giá dataset có đáng tin cậy không.
+
+## 7.7. Tab Time Trends
+
+Tab này cho phép:
+
+- chọn chỉ số theo năm,
+- xem xu hướng số lượng phim,
+- xem biến động rating, revenue, profit, ROI theo thời gian.
+
+### Khi nào dùng
+
+- dùng khi cần phân tích xu hướng thị trường phim theo năm phát hành.
+
+## 7.8. Tab Distribution
+
+Tab này trình bày:
+
+- histogram,
+- boxplot,
+- correlation heatmap.
+
+### Khi nào dùng
+
+- dùng để hiểu phân phối dữ liệu, phát hiện outlier và kiểm tra tương quan tổng thể.
+
+## 7.9. Tab Rating vs Revenue
 
 Tab này trình bày:
 
@@ -371,19 +555,32 @@ Tab này trình bày:
 
 - dùng để phân tích mối quan hệ giữa rating và doanh thu.
 
-## 7.6. Tab Top Movies
+## 7.10. Tab Top Movies
 
 Tab này cho phép:
 
 - chọn tiêu chí xếp hạng,
 - chọn số lượng top phim,
-- xem biểu đồ và bảng top phim.
+- xem biểu đồ và bảng top phim,
+- xem thêm top ROI.
 
 ### Khi nào dùng
 
 - dùng khi muốn trực quan hóa top 10 hoặc top 5 phim nổi bật.
 
-## 7.7. Tab Prediction
+## 7.11. Tab Movie Detail
+
+Tab này cho phép:
+
+- chọn một phim cụ thể,
+- xem hồ sơ chi tiết và các benchmark,
+- xem bảng các phim gần giống để đối chiếu.
+
+### Khi nào dùng
+
+- dùng khi cần phân tích sâu một phim thay vì chỉ nhìn toàn bộ dataset.
+
+## 7.12. Tab Prediction
 
 Tab này dùng để:
 
@@ -391,17 +588,20 @@ Tab này dùng để:
 - xem bảng so sánh các mô hình,
 - xem chỉ số đánh giá mô hình,
 - xem biểu đồ feature importance,
-- nhập dữ liệu để dự đoán.
+- nhập dữ liệu để dự đoán,
+- xem summary về độ phổ biến,
+- xem scenario analysis theo ngân sách.
 
 ### Cách dùng
 
-1. Chọn `Prediction target` là `Revenue` hoặc `Rating`.
+1. Chọn `Prediction target` là `Revenue`, `Rating` hoặc `View Count`.
 2. Xem mô hình tốt nhất.
-3. Quan sát `R2`, `RMSE`, `MAE`.
+3. Quan sát `R2`, `RMSE`, `MAE`, `CV_R2`, `CV_RMSE`.
 4. Nhập dữ liệu ở phần `Custom prediction`.
 5. Bấm `Run prediction`.
+6. Xem thêm phần `Scenario analysis` để đánh giá độ nhạy theo ngân sách.
 
-## 7.8. Tab Data Explorer
+## 7.13. Tab Data Explorer
 
 Tab này cho phép:
 
@@ -449,8 +649,10 @@ Project hỗ trợ dữ liệu phim với các cột chính sau:
 4. Dữ liệu thiếu được xử lý.
 5. Dữ liệu trùng lặp được loại bỏ nếu bật chức năng này.
 6. Hệ thống tạo các biểu đồ phân tích.
-7. Hệ thống huấn luyện mô hình dự đoán.
-8. Giao diện hiển thị kết quả phân tích và dự đoán.
+7. Hệ thống tạo thêm các KPI `profit` và `roi`.
+8. Hệ thống kiểm tra chất lượng dữ liệu, outlier và giá trị không hợp lệ.
+9. Hệ thống huấn luyện mô hình dự đoán và đánh giá bằng cross-validation.
+10. Giao diện hiển thị kết quả phân tích, dự đoán và phân tích kịch bản.
 
 ## 11. Điểm mạnh của project
 
@@ -516,3 +718,4 @@ Nếu cần mô tả project trong báo cáo, nên dựa vào:
 ## 15. Kết luận
 
 Project này là một dashboard phân tích dữ liệu phim hoàn chỉnh, có khả năng làm sạch dữ liệu, trực quan hóa dữ liệu và dự đoán bằng học máy. Ứng dụng đáp ứng đầy đủ yêu cầu đề tài và phù hợp để demo, báo cáo và mở rộng thêm nếu cần.
+  
